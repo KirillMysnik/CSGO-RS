@@ -8,7 +8,7 @@ from ...csgors import OnPlayerRegistered
 from ...csgors import OnPlayerUnregistered
 
 
-INITIAL_STAMINA = 1000
+INITIAL_STAMINA = 500
 STAMINA_RESTORATION_RATE = 1
 FAIL_JUMP_FORCE = -64
 STAMINA_MSG_COLOR = Color(255, 206, 60)
@@ -56,6 +56,10 @@ class StaminaPlayer:
 
     def empty(self):
         self.stamina = 0
+        self.hud_check()
+
+    def refill(self):
+        self.stamina = INITIAL_STAMINA
         self.hud_check()
 
     def restore(self):
@@ -126,3 +130,8 @@ def on_player_jump(game_event):
         stamina_player.player.push(1, FAIL_JUMP_FORCE, vert_override=True)
         stamina_player.empty()
 
+
+@Event('player_spawn')
+def on_player_spawn(game_event):
+    stamina_player = player_manager.get(game_event.get_int('userid'))
+    stamina_player.refill()
