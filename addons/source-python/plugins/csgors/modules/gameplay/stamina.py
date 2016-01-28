@@ -11,6 +11,10 @@ from ...csgors import OnPlayerUnregistered
 INITIAL_STAMINA = 500
 STAMINA_RESTORATION_RATE = 1
 FAIL_JUMP_FORCE = -64
+
+USE_OVERLAY = True
+OVERLAY_PATH = "overlays/csgors/stamina-{}"
+
 STAMINA_MSG_COLOR = Color(255, 206, 60)
 STAMINA_MSG_X = 0.01
 STAMINA_MSG_Y = 0.90
@@ -75,19 +79,25 @@ class StaminaPlayer:
             return
 
         self.stamina_ratio = new_ratio
-        hud_msg = HudMsg(
-            HUD_STRINGS[new_ratio],
-            color1=STAMINA_MSG_COLOR,
-            x=STAMINA_MSG_X,
-            y=STAMINA_MSG_Y,
-            effect=STAMINA_MSG_EFFECT,
-            fade_in=STAMINA_MSG_FADEIN,
-            fade_out=STAMINA_MSG_FADEOUT,
-            hold_time=STAMINA_MSG_HOLDTIME,
-            fx_time=STAMINA_MSG_FXTIME,
-            channel=STAMINA_MSG_CHANNEL
-        )
-        hud_msg.send(self.player.index)
+
+        if USE_OVERLAY:
+            self.player.client_command(
+                'r_screenoverlay {}'.format(OVERLAY_PATH.format(new_ratio)))
+
+        else:
+            hud_msg = HudMsg(
+                HUD_STRINGS[new_ratio],
+                color1=STAMINA_MSG_COLOR,
+                x=STAMINA_MSG_X,
+                y=STAMINA_MSG_Y,
+                effect=STAMINA_MSG_EFFECT,
+                fade_in=STAMINA_MSG_FADEIN,
+                fade_out=STAMINA_MSG_FADEOUT,
+                hold_time=STAMINA_MSG_HOLDTIME,
+                fx_time=STAMINA_MSG_FXTIME,
+                channel=STAMINA_MSG_CHANNEL
+            )
+            hud_msg.send(self.player.index)
 
 
 class PlayerManager(dict):

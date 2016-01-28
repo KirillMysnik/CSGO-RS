@@ -1,7 +1,30 @@
 from filters.players import PlayerIter
 from listeners import OnClientActive
 from listeners import OnClientDisconnect
+from listeners import OnLevelInit
+from paths import CFG_PATH
 from players.entity import Player
+from stringtables.downloads import Downloadables
+
+from .info import info
+
+
+DOWNLOADLIST = CFG_PATH / info.basename / "downloadlist.txt"
+
+
+def load_downloadables(filepath):
+    downloadables = Downloadables()
+
+    with open(filepath) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            downloadables.add(line)
+
+    return downloadables
+
+downloadables_global = load_downloadables(DOWNLOADLIST)
 
 
 class PlayerManager(dict):
@@ -81,6 +104,16 @@ def listener_on_client_active(index):
 def listener_on_client_disconnect(index):
     player = Player(index)
     player_manager.delete(player)
+
+
+@OnLevelInit
+def listener_on_level_init(map_name):
+    players_to_delete = []
+    for managed_player in player_manager.values():
+        players_to_delete.append(managed_player.player)
+
+    for player in players_to_delete:
+        player_manager.delete(player)
 
 
 from .modules import *
