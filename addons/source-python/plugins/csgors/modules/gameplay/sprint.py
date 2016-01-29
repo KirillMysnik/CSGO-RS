@@ -1,7 +1,7 @@
 from engines.sound import Sound
-from entities.constants import INVALID_ENTITY_INTHANDLE
 from entities.hooks import EntityCondition
 from entities.hooks import EntityPreHook
+from events import Event
 from listeners import OnTick
 from memory import make_object
 from players import UserCmd
@@ -18,10 +18,10 @@ from .stamina import StaminaConsumers
 
 SPRINT_START_SOUND = Sound('player/suit_sprint.wav')
 LOW_STAMINA_SOUND = Sound('player/suit_denydevice.wav')
-DEFAULT_PLAYER_SPEED = 1.2
-SPRINTING_PLAYER_SPEED = 1
-AIRBORNE_PLAYER_SPEED = 0.8
-DEFAULT_PLAYER_GRAVITY = 1.1
+DEFAULT_PLAYER_SPEED = 0.6
+SPRINTING_PLAYER_SPEED = 1.75
+AIRBORNE_PLAYER_SPEED = 1
+DEFAULT_PLAYER_GRAVITY = 1.2
 
 
 class SprintingPlayer:
@@ -30,8 +30,14 @@ class SprintingPlayer:
 
         self.sprinting = False
         self.key_pressed = False
+        self.speed = 0
 
         player.gravity = DEFAULT_PLAYER_GRAVITY
+
+    def ensure_speed(self, speed):
+        if self.speed != speed:
+            self.speed = speed
+            self.player.speed = speed
 
 
 class PlayerManager(dict):
@@ -75,7 +81,6 @@ def pre_player_run_command(stack_data):
         if sprinting_player.key_pressed and sprinting_player.sprinting:
             if stamina_player.has_stamina_for(StaminaConsumers.SPRINT):
                 stamina_player.consume(StaminaConsumers.SPRINT)
-                usercmd.buttons &= ~PlayerButtons.SPEED
             else:
                 sprinting_player.sprinting = False
                 LOW_STAMINA_SOUND.play(sprinting_player.player.index)
@@ -91,16 +96,20 @@ def pre_player_run_command(stack_data):
         sprinting_player.key_pressed = False
         sprinting_player.sprinting = False
 
-        usercmd.buttons |= PlayerButtons.SPEED
-
 
 @OnTick
 def listener_on_tick():
     for sprinting_player in player_manager.values():
-        if sprinting_player.player.ground_entity == INVALID_ENTITY_INTHANDLE:
-            sprinting_player.player.speed = AIRBORNE_PLAYER_SPEED
+        if sprinting_player.player.ground_entity == -1:
+            sprinting_player.ensure_speed(AIRBORNE_PLAYER_SPEED)
         else:
             if sprinting_player.sprinting:
-                sprinting_player.player.speed = SPRINTING_PLAYER_SPEED
+                sprinting_player.ensure_speed(SPRINTING_PLAYER_SPEED)
             else:
-                sprinting_player.player.speed = DEFAULT_PLAYER_SPEED
+                sprinting_player.ensure_speed(DEFAULT_PLAYER_SPEED)
+
+
+@Event('player_spawn')
+def on_player_spawn(game_event):
+    sprinting_player = player_manager[game_event.get_int('userid')]
+    sprinting_player.speed = 0

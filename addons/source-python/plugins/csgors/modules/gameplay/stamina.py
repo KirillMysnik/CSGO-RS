@@ -47,8 +47,8 @@ class StaminaConsumers:
 class StaminaPlayer:
     def __init__(self, player):
         self.player = player
-        self.stamina = INITIAL_STAMINA
-        self.stamina_ratio = 10
+        self.stamina = 0
+        self.stamina_ratio = 0
 
     def has_stamina_for(self, consumer):
         return self.stamina >= consumer
