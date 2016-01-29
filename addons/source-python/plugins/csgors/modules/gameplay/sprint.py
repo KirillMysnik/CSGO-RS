@@ -10,7 +10,7 @@ from players.helpers import userid_from_index
 from players.helpers import userid_from_pointer
 
 from ...csgors import OnPlayerRegistered
-from ...csgors import OnPlayerUnregistered
+from ...csgors import OnUseridUnregistered
 
 from .stamina import player_manager as stamina_player_manager
 from .stamina import StaminaConsumers
@@ -38,8 +38,8 @@ class PlayerManager(dict):
     def create(self, player):
         self[player.userid] = SprintingPlayer(player)
 
-    def delete(self, player):
-        del self[player.userid]
+    def delete_by_userid(self, userid):
+        del self[userid]
 
     def get_by_index(self, index):
         userid = userid_from_index(index)
@@ -54,9 +54,9 @@ def callback_on_player_registered(player):
     player_manager.create(player)
 
 
-@OnPlayerUnregistered
-def callback_on_player_unregistered(player):
-    player_manager.delete(player)
+@OnUseridUnregistered
+def callback_on_userid_unregistered(userid):
+    player_manager.delete_by_userid(userid)
 
 
 @EntityPreHook(EntityCondition.is_human_player, 'run_command')

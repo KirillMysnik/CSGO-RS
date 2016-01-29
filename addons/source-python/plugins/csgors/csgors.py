@@ -1,9 +1,10 @@
+from events import Event
 from filters.players import PlayerIter
 from listeners import OnClientActive
-from listeners import OnClientDisconnect
 from listeners import OnLevelInit
 from paths import CFG_PATH
 from players.entity import Player
+from players.helpers import index_from_userid
 from stringtables.downloads import Downloadables
 
 from .info import info
@@ -32,17 +33,17 @@ class PlayerManager(dict):
         super().__init__()
 
         self._callbacks_on_player_registered = []
-        self._callbacks_on_player_unregistered = []
+        self._callbacks_on_userid_unregistered = []
 
     def create(self, player):
         self[player.userid] = player
         for callback in self._callbacks_on_player_registered:
             callback(player)
 
-    def delete(self, player):
-        del self[player.userid]
-        for callback in self._callbacks_on_player_unregistered:
-            callback(player)
+    def delete_by_userid(self, userid):
+        del self[userid]
+        for callback in self._callbacks_on_userid_unregistered:
+            callback(userid)
 
     def register_player_registered_callback(self, callback):
         self._callbacks_on_player_registered.append(callback)
@@ -50,11 +51,11 @@ class PlayerManager(dict):
     def unregister_player_registered_callback(self, callback):
         self._callbacks_on_player_registered.remove(callback)
 
-    def register_player_unregistered_callback(self, callback):
-        self._callbacks_on_player_unregistered.append(callback)
+    def register_userid_unregistered_callback(self, callback):
+        self._callbacks_on_userid_unregistered.append(callback)
 
-    def unregister_player_unregistered_callback(self, callback):
-        self._callbacks_on_player_unregistered.remove(callback)
+    def unregister_userid_unregistered_callback(self, callback):
+        self._callbacks_on_userid_unregistered.remove(callback)
 
 player_manager = PlayerManager()
 
@@ -74,7 +75,7 @@ class OnPlayerRegistered:
         player_manager.unregister_player_registered_callback(self)
 
 
-class OnPlayerUnregistered:
+class OnUseridUnregistered:
     def __init__(self, callback):
         self.callback = callback
         self.register()
@@ -83,10 +84,10 @@ class OnPlayerUnregistered:
         self.callback(*args, **kwargs)
 
     def register(self):
-        player_manager.register_player_unregistered_callback(self)
+        player_manager.register_userid_unregistered_callback(self)
 
     def unregister(self):
-        player_manager.unregister_player_unregistered_callback(self)
+        player_manager.unregister_userid_unregistered_callback(self)
 
 
 def load():
@@ -100,20 +101,16 @@ def listener_on_client_active(index):
     player_manager.create(player)
 
 
-@OnClientDisconnect
-def listener_on_client_disconnect(index):
-    player = Player(index)
-    player_manager.delete(player)
+@Event('player_disconnect')
+def on_player_disconnect(game_event):
+    player_manager.delete_by_userid(game_event.get_int('userid'))
 
 
 @OnLevelInit
 def listener_on_level_init(map_name):
-    players_to_delete = []
-    for managed_player in player_manager.values():
-        players_to_delete.append(managed_player.player)
-
-    for player in players_to_delete:
-        player_manager.delete(player)
+    userids_to_delete = list(player_manager.keys())
+    for userid in userids_to_delete:
+        player_manager.delete_by_userid(userid)
 
 
 from .modules import *
