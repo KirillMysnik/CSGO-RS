@@ -1,6 +1,5 @@
 from engines.sound import Sound
-from entities.hooks import EntityCondition
-from entities.hooks import EntityPreHook
+from entities.hooks import EntityCondition, EntityPreHook
 from events import Event
 from listeners import OnTick
 from memory import make_object

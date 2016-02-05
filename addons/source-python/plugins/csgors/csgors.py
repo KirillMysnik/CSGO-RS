@@ -4,7 +4,6 @@ from listeners import OnClientActive
 from listeners import OnLevelInit
 from paths import CFG_PATH
 from players.entity import Player
-from players.helpers import index_from_userid
 from stringtables.downloads import Downloadables
 
 from .info import info
@@ -60,7 +59,7 @@ class PlayerManager(dict):
 player_manager = PlayerManager()
 
 
-class OnPlayerRegistered:
+class CallbackDecorator:
     def __init__(self, callback):
         self.callback = callback
         self.register()
@@ -68,6 +67,14 @@ class OnPlayerRegistered:
     def __call__(self, *args, **kwargs):
         self.callback(*args, **kwargs)
 
+    def register(self):
+        raise NotImplementedError
+
+    def unregister(self):
+        raise NotImplementedError
+
+
+class OnPlayerRegistered(CallbackDecorator):
     def register(self):
         player_manager.register_player_registered_callback(self)
 
@@ -75,14 +82,7 @@ class OnPlayerRegistered:
         player_manager.unregister_player_registered_callback(self)
 
 
-class OnUseridUnregistered:
-    def __init__(self, callback):
-        self.callback = callback
-        self.register()
-
-    def __call__(self, *args, **kwargs):
-        self.callback(*args, **kwargs)
-
+class OnUseridUnregistered(CallbackDecorator):
     def register(self):
         player_manager.register_userid_unregistered_callback(self)
 
@@ -90,9 +90,37 @@ class OnUseridUnregistered:
         player_manager.unregister_userid_unregistered_callback(self)
 
 
+plugin_load_callbacks = []
+plugin_unload_callbacks = []
+
+
+class OnPluginLoad(CallbackDecorator):
+    def register(self):
+        plugin_load_callbacks.append(self)
+
+    def unregister(self):
+        plugin_load_callbacks.remove(self)
+
+
+class OnPluginUnload(CallbackDecorator):
+    def register(self):
+        plugin_unload_callbacks.append(self)
+
+    def unregister(self):
+        plugin_unload_callbacks.remove(self)
+
+
 def load():
     for player in PlayerIter():
         player_manager.create(player)
+
+    for callback in plugin_load_callbacks:
+        callback()
+
+
+def unload():
+    for callback in plugin_unload_callbacks:
+        callback()
 
 
 @OnClientActive
